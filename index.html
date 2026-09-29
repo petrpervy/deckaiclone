@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DeckForge – Clash Royale deck builder for your cards</title>
+  <meta name="description" content="Pick the cards you want to play. DeckForge fills in the rest using only cards you own, based on decks top players use." />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="logo">⚔️</span> DeckForge</div>
+    <form id="tagForm" class="tag-form" autocomplete="off">
+      <input id="tagInput" placeholder="Your player tag, e.g. #2PP" aria-label="Player tag" />
+      <button type="submit" class="btn primary" id="loadBtn">Load my cards</button>
+    </form>
+  </header>
+
+  <main>
+    <div id="notice" class="notice" hidden></div>
+    <div id="player" class="player" hidden></div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>1. Pick cards you want to play <span class="muted" id="lockCount">0/8</span></h2>
+        <button class="btn ghost small" id="clearBtn" type="button">Clear</button>
+      </div>
+      <div id="slots" class="slots"></div>
+      <button id="suggestBtn" class="btn primary big" type="button">✨ Suggest decks</button>
+    </section>
+
+    <section id="resultsPanel" class="panel" hidden>
+      <h2>2. Your decks</h2>
+      <div id="results" class="results"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Cards</h2>
+        <label class="toggle"><input type="checkbox" id="showMissing" /> show cards I don't have</label>
+      </div>
+      <div class="filters">
+        <input id="search" type="search" placeholder="Search cards…" aria-label="Search cards" />
+        <div class="chips" id="chips">
+          <button class="chip active" data-f="all">All</button>
+          <button class="chip" data-f="win">Win cons</button>
+          <button class="chip" data-f="spell">Spells</button>
+          <button class="chip" data-f="building">Buildings</button>
+          <button class="chip" data-f="air">Anti-air</button>
+        </div>
+      </div>
+      <div id="grid" class="grid"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    Card data from the official Clash Royale API. Not affiliated with or endorsed by Supercell.
+  </footer>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
