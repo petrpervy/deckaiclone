@@ -4,6 +4,8 @@ import { rolesOf } from './lib/roles.js';
 import { normalizeCards, normalizeCollection, buildPool, suggest, copyDeckLink, parseDeckLink, DECK_SIZE } from './lib/engine.js';
 
 const $ = (id) => document.getElementById(id);
+// Set by the single-file build: no server, so no API calls.
+const STATIC = globalThis.DECKFORGE_STATIC === true;
 const state = {
   cards: normalizeCards(null, FALLBACK_CARDS),
   owned: null, // Map<key,{level,evo}>; null = no account loaded, treat all as owned
@@ -61,7 +63,7 @@ function cardHTML(c, { button = false, extra = '' } = {}) {
   const attrs = button ? `type="button" data-key="${esc(c.key)}" ${clickable ? '' : 'disabled'} title="${esc(c.name)}"` : `title="${esc(c.name)}"`;
   return `<${tag} class="card r-${esc(c.rarity)} ${missing ? 'missing' : ''} ${locked ? 'locked' : ''} ${extra}" ${attrs}>
     ${img}<span class="ex">${c.elixir}</span>
-    ${o ? `<span class="lv">Lv ${o.level}</span>` : ''}${o?.evo ? '<span class="evo" title="Evolution unlocked">🌀</span>' : ''}
+    ${o?.level ? `<span class="lv">Lv ${o.level}</span>` : ''}${o?.evo ? '<span class="evo" title="Evolution unlocked">🌀</span>' : ''}
     <div class="nm">${esc(c.name)}</div></${tag}>`;
 }
 
@@ -158,7 +160,7 @@ function runSuggest() {
     const ids = r.cards.map((k) => m.get(k).id);
     return `<article class="result">
       <div class="result-head"><h3>${i + 1}. ${esc(r.name)}</h3>
-        <div class="meta"><span class="el">💧 ${r.avgElixir} avg</span>${r.avgLevel != null ? `<span>Avg level ${r.avgLevel}</span>` : ''}<span>Synergy ${r.synergy}</span></div></div>
+        <div class="meta"><span class="el">💧 ${r.avgElixir} avg</span>${r.avgLevel ? `<span>Avg level ${r.avgLevel}</span>` : ''}<span>Synergy ${r.synergy}</span></div></div>
       <div class="deck">${r.cards.map((k) => cardHTML(m.get(k))).join('')}</div>
       ${r.reasons.length ? `<ul class="reasons">${r.reasons.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
       <div class="actions">
@@ -196,6 +198,7 @@ async function boot() {
   state.owned = loadManualOwned();
   renderOwnedBar(); renderSlots(); renderGrid();
 
+  if (STATIC) { $('tagForm').hidden = true; return; }
   try {
     const { items } = await getJSON('/api/cards');
     state.cards = normalizeCards(items, FALLBACK_CARDS);

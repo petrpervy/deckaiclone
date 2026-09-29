@@ -15,8 +15,10 @@
   --legendary: #3fe0d0;
   --champion: #ffd84a;
   --radius: 14px;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
   font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -24,7 +26,7 @@ body {
 button { font: inherit; cursor: pointer; }
 .top {
   display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
-  padding: 14px 16px; background: #0a1026; position: sticky; top: 0; z-index: 5;
+  padding: 14px 16px; background: #0a1026; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
   border-bottom: 1px solid #22305c;
 }
 .brand { font-weight: 800; font-size: 20px; letter-spacing: .3px; }

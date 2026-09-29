@@ -35,6 +35,10 @@ Without a key, loading by tag is off and the site falls back to marking cards by
 
 Optional: set `CR_API_BASE` to use a different proxy, or `https://api.clashroyale.com/v1` if your server has a static IP.
 
+## Single-file version
+
+`node scripts/build-single.mjs` writes `dist/deckforge.html`, a self-contained page with no server and no API calls. It runs in mark-your-cards mode and can be hosted anywhere static.
+
 ## Local development
 
 ```bash
