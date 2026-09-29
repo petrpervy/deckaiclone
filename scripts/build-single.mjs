@@ -1,6 +1,6 @@
 // Bundles the site into one self-contained HTML file (no server, no API calls).
 // The result runs in "mark your cards" mode. Usage: node scripts/build-single.mjs [out.html]
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 
 const root = new URL('..', import.meta.url);
 const read = (p) => readFile(new URL(p, root), 'utf8');
@@ -16,5 +16,6 @@ const body = html.match(/<body>([\s\S]*)<\/body>/)[1].replace(/<script type="mod
 const out = `${title}\n<style>\n${css}</style>\n${body}\n<script>window.DECKFORGE_STATIC = true;</script>\n<script type="module">\n${js}</script>\n`;
 
 const dest = process.argv[2] || 'dist/deckforge.html';
+await mkdir(new URL('.', new URL(dest, root)), { recursive: true });
 await writeFile(new URL(dest, root), out);
 console.log(`wrote ${dest} (${out.length} bytes)`);

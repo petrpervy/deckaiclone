@@ -6,6 +6,8 @@ import { normalizeCards, normalizeCollection, buildPool, suggest, copyDeckLink, 
 const $ = (id) => document.getElementById(id);
 // Set by the single-file build: no server, so no API calls.
 const STATIC = globalThis.DECKFORGE_STATIC === true;
+// Gleb's account: loaded automatically unless another tag was saved.
+const DEFAULT_TAG = 'Q08YY9QL9';
 const state = {
   cards: normalizeCards(null, FALLBACK_CARDS),
   owned: null, // Map<key,{level,evo}>; null = no account loaded, treat all as owned
@@ -193,24 +195,27 @@ async function loadPlayer(raw) {
 }
 
 async function boot() {
-  const saved = store.get('cr-tag');
-  if (saved) $('tagInput').value = `#${saved}`;
+  const saved = store.get('cr-tag') || DEFAULT_TAG;
+  $('tagInput').value = `#${saved}`;
   state.owned = loadManualOwned();
   renderOwnedBar(); renderSlots(); renderGrid();
 
   if (STATIC) { $('tagForm').hidden = true; return; }
+  let keyMissing = false;
   try {
     const { items } = await getJSON('/api/cards');
     state.cards = normalizeCards(items, FALLBACK_CARDS);
   } catch (e) {
-    notice(e.status === 503
+    keyMissing = e.status === 503;
+    notice(keyMissing
       ? 'No Clash Royale API key is set up, so loading by tag is off. Tap "Mark cards I have" below instead.'
       : `Could not load the live card list (${e.message}). Using the built-in list.`);
   }
   renderSlots(); renderGrid();
 
   getJSON('/api/meta').then((m) => { state.liveDecks = m.decks || []; }).catch(() => {});
-  if (saved) loadPlayer(saved);
+  if (keyMissing) return;
+  loadPlayer(saved);
 }
 
 $('tagForm').addEventListener('submit', (e) => { e.preventDefault(); loadPlayer($('tagInput').value); });

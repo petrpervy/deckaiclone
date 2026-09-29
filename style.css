@@ -36,6 +36,8 @@ button { font: inherit; cursor: pointer; }
   flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #2c3b6b;
   background: var(--panel-2); color: var(--text); font: inherit; min-width: 0;
 }
+/* 16px+ stops iOS Safari zooming the page when an input is tapped. */
+input { font-size: 16px !important; }
 main { max-width: 980px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
 main > * { min-width: 0; }
 .panel { background: var(--panel); border-radius: var(--radius); padding: 16px; }
