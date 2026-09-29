@@ -1,7 +1,7 @@
 import { FALLBACK_CARDS } from './lib/cards-fallback.js';
 import { ARCHETYPES } from './lib/decks.js';
 import { rolesOf } from './lib/roles.js';
-import { normalizeCards, normalizeCollection, buildPool, suggest, copyDeckLink, DECK_SIZE } from './lib/engine.js';
+import { normalizeCards, normalizeCollection, buildPool, suggest, copyDeckLink, parseDeckLink, DECK_SIZE } from './lib/engine.js';
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -13,11 +13,23 @@ const state = {
   filter: 'all',
   search: '',
   showMissing: false,
+  editOwned: false, // tapping cards marks them as owned instead of picking them
 };
 const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
 };
+// Collection marked by hand (no API key needed). Stored as a list of card keys.
+function loadManualOwned() {
+  try {
+    const keys = JSON.parse(store.get('cr-owned') || '[]');
+    return Array.isArray(keys) && keys.length ? new Map(keys.map((k) => [k, { level: 0, evo: false }])) : null;
+  } catch { return null; }
+}
+function saveManualOwned() {
+  store.set('cr-owned', JSON.stringify(state.owned ? [...state.owned.keys()] : []));
+}
+
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const byKey = () => new Map(state.cards.map((c) => [c.key, c]));
 const isOwned = (k) => !state.owned || state.owned.has(k);
@@ -39,13 +51,14 @@ function notice(msg, kind = '') {
 function cardHTML(c, { button = false, extra = '' } = {}) {
   const o = state.owned?.get(c.key);
   const missing = !isOwned(c.key);
+  const clickable = button && (!missing || state.editOwned);
   const locked = state.locked.includes(c.key);
   const art = (o?.evo && c.evoIcon) || c.icon;
   const img = art
     ? `<img src="${esc(art)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:${esc(JSON.stringify(c.name))}}))">`
     : `<div class="ph">${esc(c.name)}</div>`;
   const tag = button ? 'button' : 'div';
-  const attrs = button ? `type="button" data-key="${esc(c.key)}" ${missing ? 'disabled' : ''} title="${esc(c.name)}"` : `title="${esc(c.name)}"`;
+  const attrs = button ? `type="button" data-key="${esc(c.key)}" ${clickable ? '' : 'disabled'} title="${esc(c.name)}"` : `title="${esc(c.name)}"`;
   return `<${tag} class="card r-${esc(c.rarity)} ${missing ? 'missing' : ''} ${locked ? 'locked' : ''} ${extra}" ${attrs}>
     ${img}<span class="ex">${c.elixir}</span>
     ${o ? `<span class="lv">Lv ${o.level}</span>` : ''}${o?.evo ? '<span class="evo" title="Evolution unlocked">🌀</span>' : ''}
@@ -77,14 +90,36 @@ function matchesFilter(c) {
 function renderGrid() {
   const q = state.search.trim().toLowerCase();
   const list = state.cards
-    .filter((c) => state.showMissing || isOwned(c.key))
+    .filter((c) => state.showMissing || state.editOwned || isOwned(c.key))
     .filter((c) => !q || c.name.toLowerCase().includes(q))
     .filter(matchesFilter)
-    .sort((a, b) => (isOwned(b.key) - isOwned(a.key)) || a.elixir - b.elixir || a.name.localeCompare(b.name));
+    .sort((a, b) => (state.editOwned ? 0 : isOwned(b.key) - isOwned(a.key)) || a.elixir - b.elixir || a.name.localeCompare(b.name));
   $('grid').innerHTML = list.length ? list.map((c) => cardHTML(c, { button: true })).join('') : '<p class="empty">No cards match.</p>';
 }
 
+function toggleOwned(key) {
+  if (state.player) return notice('Your cards come from your player tag right now, so they can\'t be edited here.');
+  if (!state.owned) state.owned = new Map();
+  if (state.owned.has(key)) state.owned.delete(key);
+  else state.owned.set(key, { level: 0, evo: false });
+  if (!state.owned.size) state.owned = null;
+  state.locked = state.locked.filter(isOwned);
+  saveManualOwned();
+  renderOwnedBar(); renderSlots(); renderGrid();
+}
+
+function renderOwnedBar() {
+  const n = state.owned ? state.owned.size : 0;
+  $('ownedCount').textContent = state.player ? `${n} cards loaded from your tag`
+    : n ? `${n}/${state.cards.length} cards marked as yours` : 'No cards marked yet, so every card counts as yours';
+  $('editOwnedBtn').textContent = state.editOwned ? '✅ Done' : '✏️ Mark cards I have';
+  $('editOwnedBtn').hidden = !!state.player;
+  $('bulkOwned').hidden = !state.editOwned;
+  $('grid').classList.toggle('editing', state.editOwned);
+}
+
 function toggleLock(key) {
+  if (state.editOwned) return toggleOwned(key);
   if (!isOwned(key)) return;
   const i = state.locked.indexOf(key);
   if (i >= 0) state.locked.splice(i, 1);
@@ -152,20 +187,21 @@ async function loadPlayer(raw) {
     $('loadBtn').disabled = false;
     $('loadBtn').textContent = 'Load my cards';
   }
-  renderPlayer(); renderSlots(); renderGrid();
+  renderPlayer(); renderOwnedBar(); renderSlots(); renderGrid();
 }
 
 async function boot() {
   const saved = store.get('cr-tag');
   if (saved) $('tagInput').value = `#${saved}`;
-  renderSlots(); renderGrid();
+  state.owned = loadManualOwned();
+  renderOwnedBar(); renderSlots(); renderGrid();
 
   try {
     const { items } = await getJSON('/api/cards');
     state.cards = normalizeCards(items, FALLBACK_CARDS);
   } catch (e) {
     notice(e.status === 503
-      ? 'Demo mode: the server has no Clash Royale API key yet, so every card counts as unlocked. See README to connect.'
+      ? 'No Clash Royale API key is set up, so loading by tag is off. Tap "Mark cards I have" below instead.'
       : `Could not load the live card list (${e.message}). Using the built-in list.`);
   }
   renderSlots(); renderGrid();
@@ -186,6 +222,37 @@ $('results').addEventListener('click', (e) => {
 });
 $('clearBtn').addEventListener('click', () => { state.locked = []; renderSlots(); renderGrid(); });
 $('suggestBtn').addEventListener('click', runSuggest);
+$('editOwnedBtn').addEventListener('click', () => {
+  state.editOwned = !state.editOwned;
+  notice(state.editOwned ? 'Tap every card you have unlocked. Greyed-out cards are ones you don\'t have.' : '');
+  renderOwnedBar(); renderGrid();
+});
+$('bulkOwned').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-bulk]');
+  if (!b) return;
+  const r = b.dataset.bulk;
+  if (r === 'none') state.owned = null;
+  else {
+    if (!state.owned) state.owned = new Map();
+    for (const c of state.cards) if (r === 'all' || c.rarity === r) state.owned.set(c.key, { level: 0, evo: false });
+  }
+  saveManualOwned(); renderOwnedBar(); renderSlots(); renderGrid();
+});
+$('deckLinkForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const ids = parseDeckLink($('deckLinkInput').value);
+  const keyById = new Map(state.cards.map((c) => [c.id, c.key]));
+  const keys = ids.map((id) => keyById.get(id)).filter(Boolean);
+  if (!keys.length) return notice('No cards found in that link. In Clash, open a deck, tap Share, then Copy link, and paste it here.', 'error');
+  // A deck you play is a deck you own: add its cards to a hand-marked collection.
+  if (!state.player) {
+    if (state.owned) { for (const k of keys) state.owned.set(k, { level: 0, evo: false }); saveManualOwned(); }
+  }
+  state.locked = keys.filter(isOwned);
+  $('deckLinkInput').value = '';
+  notice(`Loaded ${keys.length} cards from your deck link.`);
+  renderOwnedBar(); renderSlots(); renderGrid();
+});
 $('search').addEventListener('input', (e) => { state.search = e.target.value; renderGrid(); });
 $('showMissing').addEventListener('change', (e) => { state.showMissing = e.target.checked; renderGrid(); });
 $('chips').addEventListener('click', (e) => {

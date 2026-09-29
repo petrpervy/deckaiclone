@@ -26,6 +26,10 @@
         <button class="btn ghost small" id="clearBtn" type="button">Clear</button>
       </div>
       <div id="slots" class="slots"></div>
+      <form id="deckLinkForm" class="deck-link" autocomplete="off">
+        <input id="deckLinkInput" placeholder="…or paste a deck link from Clash (Share → Copy link)" aria-label="Deck link from Clash Royale" />
+        <button class="btn ghost small" type="submit">Use deck</button>
+      </form>
       <button id="suggestBtn" class="btn primary big" type="button">✨ Suggest decks</button>
     </section>
 
@@ -36,7 +40,19 @@
 
     <section class="panel">
       <div class="panel-head">
-        <h2>Cards</h2>
+        <h2>Cards <span class="muted small-text" id="ownedCount"></span></h2>
+        <button class="btn primary small" id="editOwnedBtn" type="button">✏️ Mark cards I have</button>
+      </div>
+      <div class="chips bulk" id="bulkOwned" hidden>
+        <span class="muted small-text">Quick add:</span>
+        <button class="chip" data-bulk="common">All commons</button>
+        <button class="chip" data-bulk="rare">All rares</button>
+        <button class="chip" data-bulk="epic">All epics</button>
+        <button class="chip" data-bulk="all">Everything</button>
+        <button class="chip" data-bulk="none">Clear</button>
+      </div>
+      <div class="panel-head">
+        <span></span>
         <label class="toggle"><input type="checkbox" id="showMissing" /> show cards I don't have</label>
       </div>
       <div class="filters">

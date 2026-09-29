@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FALLBACK_CARDS } from '../lib/cards-fallback.js';
 import { ARCHETYPES } from '../lib/decks.js';
-import { normalizeCards, normalizeCollection, buildPool, suggest, displayLevel, slugify } from '../lib/engine.js';
+import { normalizeCards, normalizeCollection, buildPool, suggest, displayLevel, slugify, parseDeckLink } from '../lib/engine.js';
 
 const cards = normalizeCards(null, FALLBACK_CARDS);
 const keys = new Set(cards.map((c) => c.key));
@@ -67,4 +67,10 @@ test('live top-player decks feed the pool and are credited', () => {
   const [top] = suggest({ cards, owned: null, locked: ['golem'], pool: p });
   assert.equal(top.name, 'Golem Beatdown');
   assert.equal(top.reasons[0], 'Played by 5 top players right now');
+});
+
+test('deck links shared from the game are parsed into card ids', () => {
+  const link = 'https://link.clashroyale.com/en/?clashroyale://copyDeck?deck=26000021;26000014;26000038;26000030;26000010;27000000;28000000;28000011&l=Royals&tt=159000000&slots=0;0;0;0;0;0;0;0';
+  assert.deepEqual(parseDeckLink(link), [26000021, 26000014, 26000038, 26000030, 26000010, 27000000, 28000000, 28000011]);
+  assert.deepEqual(parseDeckLink('hello'), []);
 });

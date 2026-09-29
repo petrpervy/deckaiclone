@@ -102,3 +102,13 @@ button.card:hover { border-color: #4b5d99; }
   .slots, .deck { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .tag-form { max-width: none; }
 }
+
+.deck-link { display: flex; gap: 8px; margin-top: 12px; }
+.deck-link input {
+  flex: 1; min-width: 0; padding: 8px 12px; border-radius: 10px; border: 1px solid #2c3b6b;
+  background: var(--panel-2); color: var(--text); font: inherit; font-size: 13px;
+}
+.small-text { font-size: 13px; }
+.bulk { margin-bottom: 12px; align-items: center; }
+.grid.editing .card.missing { opacity: .45; cursor: pointer; }
+.grid.editing .card:not(.missing) { border-color: var(--good); }
