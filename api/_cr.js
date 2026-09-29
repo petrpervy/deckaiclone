@@ -8,7 +8,8 @@ export class ApiError extends Error {
 }
 
 export async function cr(path) {
-  const key = process.env.CR_API_KEY;
+  // CE_API_KEY: the production key was saved under this name, and Vercel can't rename sensitive vars.
+  const key = process.env.CR_API_KEY || process.env.CE_API_KEY;
   if (!key) throw new ApiError(503, 'Server is missing CR_API_KEY. See README for setup.');
   const res = await fetch(BASE + path, { headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' } });
   if (!res.ok) {
